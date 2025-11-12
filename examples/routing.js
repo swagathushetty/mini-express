@@ -32,7 +32,6 @@ app.get('/users', (req, res) => {
   ]));
 });
 
-// Single user with parameter
 app.get('/users/:id', (req, res) => {
   const userId = req.params.id;
   res.writeHead(200, { 'Content-Type': 'application/json' });
