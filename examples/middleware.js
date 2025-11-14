@@ -1,5 +1,5 @@
 // examples/03-middleware.js
-const MiniExpress = require('../miniExpress');
+const MiniExpress = require('../src/miniExpress');
 
 const app = new MiniExpress();
 

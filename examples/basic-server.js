@@ -1,4 +1,4 @@
-const MiniExpress = require('../miniExpress');
+const MiniExpress = require('../src/miniExpress');
 
 
 const app = new MiniExpress();
