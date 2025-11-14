@@ -2,6 +2,5 @@
 
 - registering routes using regex pattern match
 - routing
-
-TODO
-- add middleware
+- helper methods to make it easier to deal with req/res handling
+- middlware
