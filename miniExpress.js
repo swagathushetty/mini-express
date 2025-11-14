@@ -1,4 +1,5 @@
 const http = require('http');
+const url = require('url');
 
 
 class MiniExpress {
@@ -61,6 +62,9 @@ class MiniExpress {
     }
 
     handleRequest(req,res){
+        req = this.enhanceRequest(req);
+        res = this.enhanceResponse(res);
+
         const match = this.matchRoute(req.method,req.url);
 
         if (match) {
@@ -68,10 +72,44 @@ class MiniExpress {
             this.runMiddleware(req, res, match.handler);
         } else {
             this.runMiddleware(req, res, (req, res) => {
-            res.writeHead(404, { 'Content-Type': 'text/plain' });
-            res.end('404 Not Found');
-        });
+                res.status(404).json({ error: 'Not Found' });
+            });
         }
+    }
+
+    enhanceRequest(req) {
+        // Parse URL
+        const parsedUrl = url.parse(req.url, true);
+        req.path = parsedUrl.pathname;
+        req.query = parsedUrl.query;
+        req.params = {};
+
+        return req;
+    } 
+
+    enhanceResponse(res) {
+
+        res.status = function(code) {
+            res.statusCode = code;
+            return res;
+        };
+
+        res.json = function(obj) {
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(obj));
+        return res;
+        };
+
+        res.send = function(body) {
+            if (typeof body === 'object') {
+                return res.json(body);
+            }
+            res.setHeader('Content-Type', 'text/html');
+            res.end(body);
+            return res;
+        };
+
+        return res;
     }
 
     use(path,handler){
@@ -92,17 +130,24 @@ class MiniExpress {
     runMiddleware(req,res,finalHandler){
         const middlewareStack = []
         const requestPath = req.url.split('?')[0];
-
+        
+        //this will also add the global middlwares eg- app.use(performAuth())
+        //since for global middlewares we add a path as '/' as default
         this.middleware.forEach(mw=>{
-            // Skip error handlers (4 parameters) - they only run on errors
-            if(requestPath.startsWith(mw.path) && mw.handler.length !== 4){
-                middlewareStack.push(mw.handler)
+            
+            if(
+                requestPath.startsWith(mw.path) 
+                && mw.handler.length !== 4 // Skip error handlers (4 parameters) - they only run on errors
+            ){
+                middlewareStack.push(mw.handler) 
             }
         })
 
         // the actual route logic needs to run at the end
         middlewareStack.push(finalHandler)
         let currentIndex = 0;
+
+        // the currentIndex and middwareStack is captured in closure
         const next = (err) =>{
             if(err){
                 this.handleError(err,req,res)
@@ -161,6 +206,8 @@ class MiniExpress {
     delete(path, handler) {
         this.addRoute('DELETE', path, handler);
     }
+
+    
 
     listen(port,callback){
         this.server = http.createServer((req,res)=>{
